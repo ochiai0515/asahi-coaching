@@ -1,30 +1,10 @@
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-white text-asahi-800">
-      {/* Header / Navigation */}
-      <header className="border-b border-asahi-200 bg-white sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <span className="text-lg font-medium tracking-wider text-asahi-800">
-              株式会社旭コーチング
-            </span>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm tracking-wide text-asahi-700">
-            <a href="#greeting" className="hover:text-accent transition-colors">
-              代表挨拶
-            </a>
-            <a href="#services" className="hover:text-accent transition-colors">
-              事業内容
-            </a>
-            <a href="#company" className="hover:text-accent transition-colors">
-              会社概要
-            </a>
-            <a href="#contact" className="hover:text-accent transition-colors">
-              お問い合わせ
-            </a>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero */}
       <section className="bg-asahi-50 border-b border-asahi-200">
@@ -151,17 +131,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-asahi-200 bg-asahi-50 mt-8">
-        <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-sm tracking-wider text-asahi-700">
-            株式会社旭コーチング
-          </span>
-          <p className="text-xs tracking-wider text-asahi-700">
-            &copy; 株式会社旭コーチング
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
