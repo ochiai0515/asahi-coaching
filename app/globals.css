@@ -4,7 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* scroll-behavior はLenisが制御するため削除 */
+html {
+  scroll-behavior: smooth;
+}
 
 body {
   font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Hiragino Sans",
