@@ -25,15 +25,37 @@ export default function Header() {
     >
       <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center">
-          <Image
-            src="/brand/asahi-logo-horizontal.png"
-            alt="株式会社旭コーチング"
-            width={320}
-            height={73}
-            className="h-7 w-auto sm:h-8 md:h-9"
-            style={{ objectFit: 'contain' }}
-            priority
-          />
+          {/* ロゴコンテナ: 高さ固定・縦横比で幅を自動算出 */}
+          <div
+            className="relative h-8 md:h-10"
+            style={{ aspectRatio: '800 / 181' }}
+          >
+            {/* Hero上: 白ロゴ（暗い背景用）*/}
+            <Image
+              src="/brand/asahi-logo-horizontal-white.png"
+              alt="株式会社旭コーチング"
+              fill
+              style={{
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.12))',
+                opacity: scrolled ? 0 : 1,
+                transition: 'opacity 0.4s ease',
+              }}
+              priority
+            />
+            {/* スクロール後: ネイビーロゴ（白背景用） */}
+            <Image
+              src="/brand/asahi-logo-horizontal.png"
+              alt=""
+              fill
+              style={{
+                objectFit: 'contain',
+                opacity: scrolled ? 1 : 0,
+                transition: 'opacity 0.4s ease',
+              }}
+              priority
+            />
+          </div>
         </Link>
         <nav
           className="hidden md:flex items-center gap-8 text-sm tracking-wide"
