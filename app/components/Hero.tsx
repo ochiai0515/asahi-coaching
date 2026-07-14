@@ -79,7 +79,7 @@ interface CopyScene {
 const COPIES: CopyScene[] = [
   {
     text: '夜明け前が、\n一番暗い。',
-    inStart: 0.0,  inEnd: 1.2,  outStart: 5.7,  outEnd: 7.0,
+    inStart: 2.0,  inEnd: 3.2,  outStart: 7.7,  outEnd: 9.0,
   },
   {
     text: '人生には、\n夜がある。',
@@ -297,7 +297,7 @@ export default function Hero() {
               top: '44%', transform: 'translateY(-50%)',
               display: 'flex', justifyContent: 'center',
               padding: '0 24px',
-              opacity: i === 0 ? 1 : 0,
+              opacity: 0,
               willChange: 'opacity',
             }}
           >
