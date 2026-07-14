@@ -4,7 +4,7 @@ import SmoothScrollProvider from "./components/SmoothScrollProvider";
 
 // ─── サイトの正規 URL ───────────────────────────────────────────────────────
 // カスタムドメイン取得後はここを更新してください
-const SITE_URL = 'https://asahi-coaching.vercel.app'
+const SITE_URL = 'https://www.asahi-coaching.jp'
 
 // ─── JSON-LD（Organization 構造化データ） ──────────────────────────────────
 const jsonLd = {
