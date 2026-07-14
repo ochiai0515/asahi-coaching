@@ -4,9 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  scroll-behavior: smooth;
-}
+/* scroll-behavior は Lenis が制御するため削除 */
 
 body {
   font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Hiragino Sans",
@@ -37,4 +35,21 @@ body {
     margin-right: 12px;
     vertical-align: middle;
   }
+}
+
+/* Hero 写真の背景位置はスクロール進捗に応じて JS で動的制御（パララックス）
+   デフォルト値は Hero.tsx のインラインスタイルで管理 */
+
+/* Hero SCROLLインジケーター */
+.scroll-indicator-line {
+  width: 1px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.28);
+  animation: scrollPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes scrollPulse {
+  0%   { transform: translateY(0px);  opacity: 0.28; }
+  50%  { transform: translateY(5px);  opacity: 0.55; }
+  100% { transform: translateY(0px);  opacity: 0.28; }
 }

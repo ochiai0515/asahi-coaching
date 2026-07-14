@@ -1,24 +1,51 @@
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import Hero from "./components/Hero";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-white text-asahi-800">
       <Header />
 
-      {/* Hero */}
-      <section className="bg-asahi-50 border-b border-asahi-200">
-        <div className="max-w-5xl mx-auto px-6 py-24 md:py-36">
-          <p className="text-sm tracking-[0.3em] text-accent mb-6 uppercase">
-            Asahi Coaching Co., Ltd.
-          </p>
-          <h1 className="text-3xl md:text-5xl font-light tracking-[0.12em] text-asahi-800 leading-relaxed">
-            生命力が躍動する
-            <br />
-            舞台をつくる
-          </h1>
-          <div className="mt-8 w-12 h-px bg-accent"></div>
-        </div>
+      <Hero />
+
+      {/* 静かな一文
+          dawn-05（朝の写真）を極薄く残しながら生成り色を重ねる。
+          Heroの余韻から自然につながり、急に白背景にならないようにする。 */}
+      <section
+        className="relative flex items-center justify-center"
+        style={{ height: '100svh', minHeight: '500px' }}
+      >
+        {/* dawn-05 の余韻レイヤー（ごく薄く） */}
+        <div
+          className="absolute inset-0 bg-cover hero-bg"
+          style={{
+            backgroundImage: 'url(/images/dawn-05-morning.png)',
+            opacity: 0.10,
+          }}
+        />
+        {/* 生成り色グラデーション（上端は少し濃く、中盤で安定する） */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(to bottom, #d8c4ab 0%, #e6d8c8 12%, #ede4d8 30%, #f4ede3 60%)',
+          }}
+        />
+        <p
+          className="relative"
+          style={{
+            fontFamily:
+              '"Noto Serif JP", "YuMincho", "Yu Mincho", "游明朝", "ヒラギノ明朝 ProN", serif',
+            color: '#1e1814',
+            fontSize: 'clamp(1rem, 2.2vw, 1.3rem)',
+            fontWeight: 300,
+            letterSpacing: '0.25em',
+            lineHeight: 1,
+          }}
+        >
+          夜は、人生の一部である。
+        </p>
       </section>
 
       {/* Main Content */}
