@@ -84,32 +84,44 @@ interface CopyScene {
   inEnd: number
   outStart: number
   outEnd: number
+  color?: string  // 省略時は COPY_STYLE のデフォルト色を使用
 }
+
+// 夜〜青時間帯：温かみのある白（最も明度高め）
+const C_NIGHT   = 'rgba(250, 250, 248, 0.92)'
+// 日の出〜朝：背景が明るくなるぶんだけ、ほんの少し馴染ませる
+const C_MORNING = 'rgba(250, 250, 248, 0.80)'
 
 const COPIES: CopyScene[] = [
   {
     text: '夜明け前が、\n一番暗い。',
     inStart: 2.0,  inEnd: 3.2,  outStart: 7.7,  outEnd: 9.0,   // hold 4.5s
+    color: C_NIGHT,
   },
   {
     text: '人生には、\n夜がある。',
     inStart: 9.8,  inEnd: 11.0, outStart: 14.8, outEnd: 16.0,  // hold 3.8s
+    color: C_NIGHT,
   },
   {
     text: '迷うことも。\n\n苦しむことも。\n\n立ち止まることも。',
     inStart: 16.8, inEnd: 18.0, outStart: 22.8, outEnd: 24.0,  // hold 4.8s
+    color: C_NIGHT,
   },
   {
     text: '夜があるからこそ、\n夜明けは希望になる。',
     inStart: 24.8, inEnd: 26.0, outStart: 29.8, outEnd: 31.0,  // hold 3.8s
+    color: C_MORNING,
   },
   {
     text: '出来事は選べない。\n\nでも、\nその出来事をどう引き受けるかは、\n自分で選べる。',
     inStart: 31.8, inEnd: 33.0, outStart: 38.8, outEnd: 40.0,  // hold 5.8s
+    color: C_MORNING,
   },
   {
     text: '人生は、\nその選択の積み重ねで\nできている。',
     inStart: 40.8, inEnd: 42.0, outStart: 46.8, outEnd: 48.2,  // hold 4.8s
+    color: C_MORNING,
   },
 ]
 // 48.2 → 51.5：朝の写真だけの余韻（3.3s）
@@ -124,15 +136,19 @@ function copyOp(t: number, copy: CopyScene): number {
 }
 
 // ── コピー共通スタイル ────────────────────────────────────────────────────────
+// 改善の方向：「改善したと分からないくらい自然なのに、読める」
+//   ・純白ではなく #FAFAF8 系の温かみのある白
+//   ・shadow は最小限（存在感を消す）
+//   ・行間・字間をわずかに広げ、映画字幕のような静かな呼吸を作る
+//   ・太字化・背景追加・縁取りは一切なし
 const COPY_STYLE: React.CSSProperties = {
   fontFamily:
     '"Noto Serif JP", "YuMincho", "Yu Mincho", "游明朝", "ヒラギノ明朝 ProN", serif',
-  color: 'rgba(255, 255, 255, 0.90)',
   fontSize: 'clamp(1.05rem, 2.6vw, 1.7rem)',
   fontWeight: 300,
-  letterSpacing: '0.28em',
-  lineHeight: 2.4,
-  textShadow: '0 1px 14px rgba(0, 0, 0, 0.22)',
+  letterSpacing: '0.30em',
+  lineHeight: 2.6,
+  textShadow: '0 1px 6px rgba(0, 0, 0, 0.12)',
   textAlign: 'center',
   whiteSpace: 'pre-line',
 }
@@ -246,7 +262,7 @@ export default function Hero() {
             display: 'flex', justifyContent: 'center', padding: '0 24px',
           }}
         >
-          <p style={COPY_STYLE}>夜明け前が、一番暗い。</p>
+          <p style={{ ...COPY_STYLE, color: C_NIGHT }}>夜明け前が、一番暗い。</p>
         </div>
       </div>
     )
@@ -311,7 +327,7 @@ export default function Hero() {
               willChange: 'opacity',
             }}
           >
-            <p style={COPY_STYLE}>{copy.text}</p>
+            <p style={{ ...COPY_STYLE, color: copy.color ?? C_NIGHT }}>{copy.text}</p>
           </div>
         ))}
       </div>
