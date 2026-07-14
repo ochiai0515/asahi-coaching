@@ -37,8 +37,18 @@ body {
   }
 }
 
-/* Hero 写真の背景位置はスクロール進捗に応じて JS で動的制御（パララックス）
-   デフォルト値は Hero.tsx のインラインスタイルで管理 */
+/* Hero 写真の背景位置
+   全枚同一の構図基準点で統一し、クロスフェード中の水平線・山のずれを最小化する。
+   PC: center 22%（水平線を画面上部に置く）
+   SP: center 40%（クロップを抑え空を多く見せる） */
+.hero-photo {
+  background-position: center 22%;
+}
+@media (max-width: 767px) {
+  .hero-photo {
+    background-position: center 40%;
+  }
+}
 
 /* Hero SCROLLインジケーター */
 .scroll-indicator-line {

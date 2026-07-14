@@ -1,288 +1,311 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useEffect, useRef, useState } from 'react'
 
 // ────────────────────────────────────────────────────────────────────────────
-// スクロール駆動 Hero（写真主役・夜明け体験版）
+// 自動再生 Hero（映画的夜明け体験版）
 //
-// 外側ラッパー 500vh のスクロール空間を持ち、内側が sticky で
-// ビューポートに貼り付いたまま、スクロール進捗 0→1 に応じて：
+// 総再生時間：49.5 秒（1回のみ・ループなし）
 //
-//   ・5枚の夜明け写真がクロスフェード（Canvas禁止 / 写真のみ）
-//   ・背景位置が 5% ゆっくり縦シフト（パララックス）
-//   ・夜明けが進むにつれ薄い暖色グローがホライゾンに滲む（光）
-//   ・6つのコピーが静かに現れ消える（余白の中に浮かぶ程度）
-//   ・スクロールインジケーターが冒頭だけ表示
+// ■ 画像切り替えの設計思想
+//   クロスフェード 3.0s をコピーの「ギャップ」中心に配置することで、
+//   「景色が変わった」ではなく「時間が進んだ」と感じさせる。
+//   コピーが完全に消えた無言の間に背景が静かに溶け替わり、
+//   次のコピーが現れる頃には次の情景に自然に移っている。
 //
-// ライブラリ：GSAP ScrollTrigger（SmoothScrollProvider で Lenis 連携済み）
+//   dawn-01 | 0.0 s → 8.9 s  （フェードアウト 5.9〜8.9）
+//   dawn-02 | 5.9 s → 15.9s  （in 5.9-8.9 / out 12.9-15.9）
+//   dawn-03 | 12.9s → 23.9s  （in 12.9-15.9 / out 20.9-23.9）
+//   dawn-04 | 20.9s → 30.9s  （in 20.9-23.9 / out 27.9-30.9）
+//   dawn-05 | 27.9s → end    （in 27.9-30.9 / フェードアウトなし）
+//
+// ■ コピー設計（前後を重ねない・無言の間を入れる）
+//   Scene 1  0.0 → 7.0s   hold 4.5s（最長：最も読ませる）
+//   Gap      7.0 → 7.8s   0.8s の無言
+//   Scene 2  7.8 → 14.0s  hold 3.8s
+//   Gap     14.0 → 14.8s
+//   Scene 3 14.8 → 22.0s  hold 4.8s（3行コピー・長め）
+//   Gap     22.0 → 22.8s
+//   Scene 4 22.8 → 29.0s  hold 3.8s
+//   Gap     29.0 → 29.8s
+//   Scene 5 29.8 → 38.0s  hold 5.8s（5行コピー・最も長い）
+//   Gap     38.0 → 38.8s
+//   Scene 6 38.8 → 46.2s  hold 4.8s
+//   余韻    46.2 → 49.5s  3.3s（dawn-05 のみ・文字なし）
+//
+// ■ Ken Burns
+//   全画像共通ラッパーを 1.000 → 1.020 にゆっくりスケール（タイマー連動）
+//   タブ非表示時は停止、復帰時に再開
 // ────────────────────────────────────────────────────────────────────────────
 
-// 写真（夜→青時間帯→グロー→日の出→朝）
-const IMAGES = [
-  '/images/dawn-01-night.png',
-  '/images/dawn-02-bluehour.png',
-  '/images/dawn-03-glow.png',
-  '/images/dawn-04-sunrise.png',
-  '/images/dawn-05-morning.png',
-]
+const TOTAL = 49.5
 
-// 各写真のスクロール進捗区間
-// inStart==inEnd のときは最初から全表示
-interface ImgRange {
+// ── 画像タイムライン ─────────────────────────────────────────────────────────
+interface ImgLayer {
+  src: string
   inStart: number
   inEnd: number
   outStart: number | null
   outEnd: number | null
 }
-const IMG_RANGES: ImgRange[] = [
-  { inStart: 0,    inEnd: 0,    outStart: 0.18, outEnd: 0.24 },
-  { inStart: 0.18, inEnd: 0.24, outStart: 0.36, outEnd: 0.42 },
-  { inStart: 0.36, inEnd: 0.42, outStart: 0.54, outEnd: 0.60 },
-  { inStart: 0.54, inEnd: 0.60, outStart: 0.72, outEnd: 0.78 },
-  { inStart: 0.72, inEnd: 0.78, outStart: null,  outEnd: null  },
+
+const IMAGES: ImgLayer[] = [
+  { src: '/images/dawn-01-night.png',    inStart: 0,    inEnd: 0,    outStart: 5.9,  outEnd: 8.9  },
+  { src: '/images/dawn-02-bluehour.png', inStart: 5.9,  inEnd: 8.9,  outStart: 12.9, outEnd: 15.9 },
+  { src: '/images/dawn-03-glow.png',     inStart: 12.9, inEnd: 15.9, outStart: 20.9, outEnd: 23.9 },
+  { src: '/images/dawn-04-sunrise.png',  inStart: 20.9, inEnd: 23.9, outStart: 27.9, outEnd: 30.9 },
+  { src: '/images/dawn-05-morning.png',  inStart: 27.9, inEnd: 30.9, outStart: null,  outEnd: null },
 ]
 
-// コピーのスクロール進捗区間
-interface CopyRange {
+function imgOp(t: number, img: ImgLayer): number {
+  const { inStart, inEnd, outStart, outEnd } = img
+  if (t < inStart) return 0
+  if (inEnd > inStart && t < inEnd) return (t - inStart) / (inEnd - inStart)
+  if (outStart === null) return 1
+  if (t < outStart) return 1
+  if (outEnd !== null && t < outEnd) return 1 - (t - outStart) / (outEnd - outStart)
+  return 0
+}
+
+// ── コピータイムライン ───────────────────────────────────────────────────────
+interface CopyScene {
   text: string
   inStart: number
   inEnd: number
   outStart: number
   outEnd: number
 }
-const COPIES: CopyRange[] = [
+
+const COPIES: CopyScene[] = [
   {
     text: '夜明け前が、\n一番暗い。',
-    inStart: 0.00, inEnd: 0.04, outStart: 0.12, outEnd: 0.17,
+    inStart: 0.0,  inEnd: 1.2,  outStart: 5.7,  outEnd: 7.0,
   },
   {
     text: '人生には、\n夜がある。',
-    inStart: 0.18, inEnd: 0.22, outStart: 0.30, outEnd: 0.35,
+    inStart: 7.8,  inEnd: 9.0,  outStart: 12.8, outEnd: 14.0,
   },
   {
     text: '迷うことも。\n\n苦しむことも。\n\n立ち止まることも。',
-    inStart: 0.36, inEnd: 0.40, outStart: 0.48, outEnd: 0.53,
+    inStart: 14.8, inEnd: 16.0, outStart: 20.8, outEnd: 22.0,
   },
   {
     text: '夜があるからこそ、\n夜明けは希望になる。',
-    inStart: 0.54, inEnd: 0.58, outStart: 0.65, outEnd: 0.70,
+    inStart: 22.8, inEnd: 24.0, outStart: 27.8, outEnd: 29.0,
   },
   {
     text: '出来事は選べない。\n\nでも、\nその出来事をどう引き受けるかは、\n自分で選べる。',
-    inStart: 0.72, inEnd: 0.76, outStart: 0.82, outEnd: 0.87,
+    inStart: 29.8, inEnd: 31.0, outStart: 36.8, outEnd: 38.0,
   },
   {
     text: '人生は、\nその選択の積み重ねで\nできている。',
-    inStart: 0.88, inEnd: 0.92, outStart: 0.97, outEnd: 1.00,
+    inStart: 38.8, inEnd: 40.0, outStart: 44.8, outEnd: 46.2,
   },
 ]
+// 46.2 → 49.5：朝の写真だけの余韻
 
-// 進捗 p から各レイヤーの opacity を計算
-function calcOp(p: number, r: ImgRange | CopyRange): number {
-  const { inStart, inEnd } = r
-  const os = (r as ImgRange).outStart
-  const oe = (r as ImgRange).outEnd
-  if (p < inStart) return 0
-  if (inEnd > inStart && p < inEnd) return (p - inStart) / (inEnd - inStart)
-  if (os === null || os === undefined) return 1
-  if (p < os) return 1
-  if (oe !== null && oe !== undefined && p < oe) return 1 - (p - os) / (oe - os)
+function copyOp(t: number, copy: CopyScene): number {
+  const { inStart, inEnd, outStart, outEnd } = copy
+  if (t < inStart) return 0
+  if (t < inEnd) return inEnd > inStart ? (t - inStart) / (inEnd - inStart) : 1
+  if (t < outStart) return 1
+  if (t < outEnd) return 1 - (t - outStart) / (outEnd - outStart)
   return 0
 }
 
+// ── コピー共通スタイル ────────────────────────────────────────────────────────
+const COPY_STYLE: React.CSSProperties = {
+  fontFamily:
+    '"Noto Serif JP", "YuMincho", "Yu Mincho", "游明朝", "ヒラギノ明朝 ProN", serif',
+  color: 'rgba(255, 255, 255, 0.90)',
+  fontSize: 'clamp(1.05rem, 2.6vw, 1.7rem)',
+  fontWeight: 300,
+  letterSpacing: '0.28em',
+  lineHeight: 2.4,
+  textShadow: '0 1px 14px rgba(0, 0, 0, 0.22)',
+  textAlign: 'center',
+  whiteSpace: 'pre-line',
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Component
+// ────────────────────────────────────────────────────────────────────────────
 export default function Hero() {
-  const wrapperRef   = useRef<HTMLDivElement>(null)
+  const [reducedMotion, setReducedMotion] = useState(false)
+
+  // DOM refs（React state を使わず直接更新 → 再レンダー不要）
+  const bgWrapperRef = useRef<HTMLDivElement>(null)
   const imgRefs      = useRef<(HTMLDivElement | null)[]>([])
   const copyRefs     = useRef<(HTMLDivElement | null)[]>([])
-  const lightRef     = useRef<HTMLDivElement>(null)
-  const indicatorRef = useRef<HTMLDivElement>(null)
+
+  // タイマー管理
+  const rafRef    = useRef<number | null>(null)
+  const baseRef   = useRef(0)
+  const resumeRef = useRef<number | null>(null)
+  const doneRef   = useRef(false)
 
   useEffect(() => {
-    gsap.registerPlugin(ScrollTrigger)
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReducedMotion(mq.matches)
+    if (mq.matches) return
 
-    const wrapper = wrapperRef.current
-    if (!wrapper) return
+    const tick = () => {
+      if (resumeRef.current === null) return
+      const t = Math.min(
+        baseRef.current + (performance.now() - resumeRef.current) / 1000,
+        TOTAL
+      )
 
-    // モバイル判定（パララックスの基準位置）
-    const mq = window.matchMedia('(max-width: 767px)')
+      // 写真 opacity
+      imgRefs.current.forEach((el, i) => {
+        if (el) el.style.opacity = String(imgOp(t, IMAGES[i]))
+      })
 
-    const trigger = ScrollTrigger.create({
-      trigger: wrapper,
-      start: 'top top',
-      end: 'bottom bottom',
-      onUpdate(self) {
-        const p = self.progress
+      // コピー opacity
+      copyRefs.current.forEach((el, i) => {
+        if (el) el.style.opacity = String(copyOp(t, COPIES[i]))
+      })
 
-        // ── 写真の opacity ──────────────────────────────────────────────────
-        imgRefs.current.forEach((el, i) => {
-          if (!el) return
-          el.style.opacity = String(calcOp(p, IMG_RANGES[i]))
-        })
+      // Ken Burns（タイマー連動 → タブ非表示中は停止）
+      if (bgWrapperRef.current) {
+        const scale = 1.0 + (t / TOTAL) * 0.02
+        bgWrapperRef.current.style.transform = `scale(${scale})`
+      }
 
-        // ── パララックス（背景位置を 5% 縦にシフト） ────────────────────────
-        const baseY = mq.matches ? 45 : 22
-        const parallaxY = baseY + p * 5
-        imgRefs.current.forEach((el) => {
-          if (el) el.style.backgroundPosition = `center ${parallaxY}%`
-        })
+      if (t < TOTAL) {
+        rafRef.current = requestAnimationFrame(tick)
+      } else {
+        doneRef.current = true
+      }
+    }
 
-        // ── 暖色グロー（日の出以降に滲む） ─────────────────────────────────
-        // 進捗 0.5 あたりから徐々に現れ、0.85 でピーク後フェードアウト
-        if (lightRef.current) {
-          const raw = p < 0.85
-            ? Math.max(0, (p - 0.50) / 0.35)
-            : 1 - (p - 0.85) / 0.15
-          lightRef.current.style.opacity = String(Math.min(1, raw) * 0.22)
+    // 200ms 遅延でページロード完了後に開始
+    const startTimer = setTimeout(() => {
+      resumeRef.current = performance.now()
+      tick()
+    }, 200)
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+        if (resumeRef.current !== null) {
+          baseRef.current = Math.min(
+            baseRef.current + (performance.now() - resumeRef.current) / 1000,
+            TOTAL
+          )
+          resumeRef.current = null
         }
-
-        // ── コピーの opacity ────────────────────────────────────────────────
-        copyRefs.current.forEach((el, i) => {
-          if (!el) return
-          el.style.opacity = String(calcOp(p, COPIES[i]))
-        })
-
-        // ── スクロールインジケーターを序盤だけ表示 ──────────────────────────
-        if (indicatorRef.current) {
-          indicatorRef.current.style.opacity = String(Math.max(0, 1 - p * 18))
-        }
-      },
-    })
+      } else if (!doneRef.current) {
+        resumeRef.current = performance.now()
+        tick()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
 
     return () => {
-      trigger.kill()
+      clearTimeout(startTimer)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [])
 
-  return (
-    // 500vh のスクロール空間
-    <div ref={wrapperRef} style={{ height: '500vh', position: 'relative' }}>
+  // ── prefers-reduced-motion: 静止表示 ─────────────────────────────────────
+  if (reducedMotion) {
+    return (
+      <div style={{ height: '100svh', minHeight: '600px', position: 'relative', overflow: 'hidden' }}>
+        <div
+          className="hero-photo"
+          style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: 'url(/images/dawn-01-night.png)',
+            backgroundSize: 'cover', backgroundRepeat: 'no-repeat',
+            backgroundColor: '#06080f',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0.02) 40%, rgba(0,0,0,0.20) 100%)',
+            pointerEvents: 'none',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute', left: 0, right: 0, top: '44%',
+            transform: 'translateY(-50%)',
+            display: 'flex', justifyContent: 'center', padding: '0 24px',
+          }}
+        >
+          <p style={COPY_STYLE}>夜明け前が、一番暗い。</p>
+        </div>
+      </div>
+    )
+  }
 
-      {/* sticky 内部 — ビューポートに固定 */}
+  // ── 通常再生 ──────────────────────────────────────────────────────────────
+  return (
+    <div style={{ height: '100svh', minHeight: '600px', position: 'relative', overflow: 'hidden' }}>
+
+      {/* Ken Burns ラッパー（端切れ防止のため -1% 拡張） */}
       <div
+        ref={bgWrapperRef}
         style={{
-          position: 'sticky',
-          top: 0,
-          height: '100svh',
-          minHeight: '600px',
-          overflow: 'hidden',
+          position: 'absolute',
+          inset: '-1%',
+          transformOrigin: 'center center',
+          willChange: 'transform',
         }}
       >
         {/* 夜の地色 */}
         <div style={{ position: 'absolute', inset: 0, backgroundColor: '#06080f' }} />
 
-        {/* 写真レイヤー群 */}
-        {IMAGES.map((src, i) => (
+        {/* 写真レイヤー群（全枚同一 backgroundPosition で構図ずれを最小化） */}
+        {IMAGES.map((img, i) => (
           <div
             key={i}
             ref={(el) => { imgRefs.current[i] = el }}
+            className="hero-photo"
             style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: `url(${src})`,
+              position: 'absolute', inset: 0,
+              backgroundImage: `url(${img.src})`,
               backgroundSize: 'cover',
-              backgroundPosition: 'center 22%',
               backgroundRepeat: 'no-repeat',
               opacity: i === 0 ? 1 : 0,
               willChange: 'opacity',
             }}
           />
         ))}
+      </div>
 
-        {/* 暖色グロー（ホライゾン付近） */}
-        <div
-          ref={lightRef}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background:
-              'radial-gradient(ellipse 100% 40% at 50% 100%, rgba(255,160,60,0.9) 0%, rgba(255,100,20,0.4) 40%, transparent 70%)',
-            opacity: 0,
-            pointerEvents: 'none',
-            willChange: 'opacity',
-          }}
-        />
+      {/* 上下ビネット（極薄・写真の縁を落ち着かせる） */}
+      <div
+        style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0.02) 40%, rgba(0,0,0,0.20) 100%)',
+          pointerEvents: 'none',
+        }}
+      />
 
-        {/* 上下ビネット（極薄） */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background:
-              'linear-gradient(to bottom, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0.02) 40%, rgba(0,0,0,0.20) 100%)',
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* コピーレイヤー群 */}
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-          {COPIES.map((copy, i) => (
-            <div
-              key={i}
-              ref={(el) => { copyRefs.current[i] = el }}
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                top: '44%',
-                transform: 'translateY(-50%)',
-                display: 'flex',
-                justifyContent: 'center',
-                padding: '0 24px',
-                opacity: i === 0 ? 1 : 0,
-                willChange: 'opacity',
-              }}
-            >
-              <p
-                style={{
-                  fontFamily:
-                    '"Noto Serif JP", "YuMincho", "Yu Mincho", "游明朝", "ヒラギノ明朝 ProN", serif',
-                  color: 'rgba(255, 255, 255, 0.90)',
-                  fontSize: 'clamp(1.05rem, 2.6vw, 1.7rem)',
-                  fontWeight: 300,
-                  letterSpacing: '0.28em',
-                  lineHeight: 2.4,
-                  textShadow: '0 1px 14px rgba(0, 0, 0, 0.22)',
-                  textAlign: 'center',
-                  whiteSpace: 'pre-line',
-                }}
-              >
-                {copy.text}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* スクロールインジケーター */}
-        <div
-          ref={indicatorRef}
-          style={{
-            position: 'absolute',
-            bottom: '40px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <span
+      {/* コピーレイヤー群（一度に1つのみ表示） */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        {COPIES.map((copy, i) => (
+          <div
+            key={i}
+            ref={(el) => { copyRefs.current[i] = el }}
             style={{
-              fontFamily: '"Noto Sans JP", sans-serif',
-              fontSize: '0.62rem',
-              letterSpacing: '0.35em',
-              color: 'rgba(255,255,255,0.35)',
-              fontWeight: 300,
+              position: 'absolute', left: 0, right: 0,
+              top: '44%', transform: 'translateY(-50%)',
+              display: 'flex', justifyContent: 'center',
+              padding: '0 24px',
+              opacity: i === 0 ? 1 : 0,
+              willChange: 'opacity',
             }}
           >
-            SCROLL
-          </span>
-          <div className="scroll-indicator-line" />
-        </div>
-
+            <p style={COPY_STYLE}>{copy.text}</p>
+          </div>
+        ))}
       </div>
+
     </div>
   )
 }

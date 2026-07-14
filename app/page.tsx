@@ -10,26 +10,41 @@ export default function Home() {
       <Hero />
 
       {/* 静かな一文
-          dawn-05（朝の写真）を極薄く残しながら生成り色を重ねる。
-          Heroの余韻から自然につながり、急に白背景にならないようにする。 */}
+          Hero最後の dawn-05（朝の写真）からゆっくり生成り色へつなぐ橋渡しセクション。
+          上端は写真が透けて見え、下へいくほど生成り色が安定する。
+          急に白背景へ切り替えない。この一文を読んでから本文へ。 */}
       <section
         className="relative flex items-center justify-center"
-        style={{ height: '100svh', minHeight: '500px' }}
+        style={{
+          height: '100svh',
+          minHeight: '500px',
+          backgroundColor: '#f4ede3',  /* 生成り色ベース */
+        }}
       >
-        {/* dawn-05 の余韻レイヤー（ごく薄く） */}
+        {/* dawn-05 の余韻レイヤー（上部で透けて見える） */}
         <div
-          className="absolute inset-0 bg-cover hero-bg"
+          className="absolute inset-0 hero-photo"
           style={{
             backgroundImage: 'url(/images/dawn-05-morning.png)',
-            opacity: 0.10,
+            backgroundSize: 'cover',
+            backgroundRepeat: 'no-repeat',
+            opacity: 0.22,
           }}
         />
-        {/* 生成り色グラデーション（上端は少し濃く、中盤で安定する） */}
+        {/* グラデーションオーバーレイ：上は透明（写真が透ける）→ 下は完全な生成り色
+            文字が置かれる中央付近（50〜60%）ではほぼ不透明になり読みやすい */}
         <div
           className="absolute inset-0"
           style={{
-            background:
-              'linear-gradient(to bottom, #d8c4ab 0%, #e6d8c8 12%, #ede4d8 30%, #f4ede3 60%)',
+            background: [
+              'linear-gradient(to bottom,',
+              'rgba(244, 237, 227, 0.10) 0%,',
+              'rgba(244, 237, 227, 0.45) 25%,',
+              'rgba(244, 237, 227, 0.80) 48%,',
+              'rgba(244, 237, 227, 0.96) 65%,',
+              'rgba(244, 237, 227, 1.00) 80%)',
+            ].join(' '),
+            pointerEvents: 'none',
           }}
         />
         <p
@@ -40,8 +55,8 @@ export default function Home() {
             color: '#1e1814',
             fontSize: 'clamp(1rem, 2.2vw, 1.3rem)',
             fontWeight: 300,
-            letterSpacing: '0.25em',
-            lineHeight: 1,
+            letterSpacing: '0.30em',
+            lineHeight: 1.8,
           }}
         >
           夜は、人生の一部である。
