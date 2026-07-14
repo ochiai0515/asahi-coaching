@@ -38,9 +38,19 @@ import { useEffect, useRef, useState } from 'react'
 //   タブ非表示時は停止、復帰時に再開
 // ────────────────────────────────────────────────────────────────────────────
 
-const TOTAL = 49.5
+const TOTAL = 51.5
 
 // ── 画像タイムライン ─────────────────────────────────────────────────────────
+//
+// 設計原則：
+//   各画像のフェードアウト開始 = 対応するコピーのフェードアウト開始（同タイミング）
+//   → コピーが消え始めるのと背景が溶け始めるのを同時にすることで
+//     「テロップが変わるのに背景は別タイミング」という違和感をなくす
+//
+//   コピー outStart → 画像フェードアウト開始（同秒）
+//   コピー outEnd+gap → 画像フェードアウト中盤（約半分）
+//   次コピー inEnd  → 画像フェードアウト完了（3.0s後）
+//
 interface ImgLayer {
   src: string
   inStart: number
@@ -50,11 +60,11 @@ interface ImgLayer {
 }
 
 const IMAGES: ImgLayer[] = [
-  { src: '/images/dawn-01-night.png',    inStart: 0,    inEnd: 0,    outStart: 5.9,  outEnd: 8.9  },
-  { src: '/images/dawn-02-bluehour.png', inStart: 5.9,  inEnd: 8.9,  outStart: 12.9, outEnd: 15.9 },
-  { src: '/images/dawn-03-glow.png',     inStart: 12.9, inEnd: 15.9, outStart: 20.9, outEnd: 23.9 },
-  { src: '/images/dawn-04-sunrise.png',  inStart: 20.9, inEnd: 23.9, outStart: 27.9, outEnd: 30.9 },
-  { src: '/images/dawn-05-morning.png',  inStart: 27.9, inEnd: 30.9, outStart: null,  outEnd: null },
+  { src: '/images/dawn-01-night.png',    inStart: 0,    inEnd: 0,    outStart: 7.7,  outEnd: 10.7 },
+  { src: '/images/dawn-02-bluehour.png', inStart: 7.7,  inEnd: 10.7, outStart: 14.8, outEnd: 17.8 },
+  { src: '/images/dawn-03-glow.png',     inStart: 14.8, inEnd: 17.8, outStart: 22.8, outEnd: 25.8 },
+  { src: '/images/dawn-04-sunrise.png',  inStart: 22.8, inEnd: 25.8, outStart: 29.8, outEnd: 32.8 },
+  { src: '/images/dawn-05-morning.png',  inStart: 29.8, inEnd: 32.8, outStart: null,  outEnd: null },
 ]
 
 function imgOp(t: number, img: ImgLayer): number {
@@ -79,30 +89,30 @@ interface CopyScene {
 const COPIES: CopyScene[] = [
   {
     text: '夜明け前が、\n一番暗い。',
-    inStart: 2.0,  inEnd: 3.2,  outStart: 7.7,  outEnd: 9.0,
+    inStart: 2.0,  inEnd: 3.2,  outStart: 7.7,  outEnd: 9.0,   // hold 4.5s
   },
   {
     text: '人生には、\n夜がある。',
-    inStart: 7.8,  inEnd: 9.0,  outStart: 12.8, outEnd: 14.0,
+    inStart: 9.8,  inEnd: 11.0, outStart: 14.8, outEnd: 16.0,  // hold 3.8s
   },
   {
     text: '迷うことも。\n\n苦しむことも。\n\n立ち止まることも。',
-    inStart: 14.8, inEnd: 16.0, outStart: 20.8, outEnd: 22.0,
+    inStart: 16.8, inEnd: 18.0, outStart: 22.8, outEnd: 24.0,  // hold 4.8s
   },
   {
     text: '夜があるからこそ、\n夜明けは希望になる。',
-    inStart: 22.8, inEnd: 24.0, outStart: 27.8, outEnd: 29.0,
+    inStart: 24.8, inEnd: 26.0, outStart: 29.8, outEnd: 31.0,  // hold 3.8s
   },
   {
     text: '出来事は選べない。\n\nでも、\nその出来事をどう引き受けるかは、\n自分で選べる。',
-    inStart: 29.8, inEnd: 31.0, outStart: 36.8, outEnd: 38.0,
+    inStart: 31.8, inEnd: 33.0, outStart: 38.8, outEnd: 40.0,  // hold 5.8s
   },
   {
     text: '人生は、\nその選択の積み重ねで\nできている。',
-    inStart: 38.8, inEnd: 40.0, outStart: 44.8, outEnd: 46.2,
+    inStart: 40.8, inEnd: 42.0, outStart: 46.8, outEnd: 48.2,  // hold 4.8s
   },
 ]
-// 46.2 → 49.5：朝の写真だけの余韻
+// 48.2 → 51.5：朝の写真だけの余韻（3.3s）
 
 function copyOp(t: number, copy: CopyScene): number {
   const { inStart, inEnd, outStart, outEnd } = copy
