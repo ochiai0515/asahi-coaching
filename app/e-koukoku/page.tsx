@@ -3,9 +3,12 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 export const metadata: Metadata = {
-  title: "電子公告｜株式会社旭コーチング",
+  title: "電子公告",
   description:
     "株式会社旭コーチングの電子公告ページです。会社法第939条の規定に基づき、公告事項を掲載します。",
+  alternates: {
+    canonical: '/e-koukoku',
+  },
   robots: {
     index: true,
     follow: true,
