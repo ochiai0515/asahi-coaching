@@ -1,4 +1,6 @@
+import { readFileSync } from 'fs'
 import { ImageResponse } from 'next/og'
+import path from 'path'
 
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
@@ -12,6 +14,17 @@ export default async function OGImage() {
     ).then((r) => r.arrayBuffer())
   } catch {
     // フォント読み込み失敗時はシステムフォントで代替
+  }
+
+  // ロゴ（正方形・ネイビー）を base64 で埋め込む
+  let logoSrc: string | undefined
+  try {
+    const logoBuffer = readFileSync(
+      path.join(process.cwd(), 'public/brand/asahi-logo-square.png')
+    )
+    logoSrc = `data:image/png;base64,${logoBuffer.toString('base64')}`
+  } catch {
+    // ロゴ読み込み失敗時はスキップ
   }
 
   return new ImageResponse(
@@ -54,19 +67,15 @@ export default async function OGImage() {
           }}
         />
 
-        {/* 会社名 */}
-        <div
-          style={{
-            color: 'rgba(255, 255, 255, 0.92)',
-            fontSize: 58,
-            fontWeight: 300,
-            letterSpacing: '0.18em',
-            marginBottom: 28,
-            textShadow: '0 2px 24px rgba(0,0,0,0.5)',
-          }}
-        >
-          株式会社旭コーチング
-        </div>
+        {/* ロゴ */}
+        {logoSrc && (
+          <img
+            src={logoSrc}
+            width={120}
+            height={120}
+            style={{ marginBottom: 32, opacity: 0.92 }}
+          />
+        )}
 
         {/* キャッチコピー */}
         <div

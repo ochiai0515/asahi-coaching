@@ -1,5 +1,6 @@
 'use client'
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -23,12 +24,16 @@ export default function Header() {
       }`}
     >
       <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-        <Link
-          href="/"
-          className="text-lg font-medium tracking-wider transition-colors hover:text-accent"
-          style={{ color: scrolled ? undefined : 'rgba(200,210,230,0.9)' }}
-        >
-          株式会社旭コーチング
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/brand/asahi-logo-horizontal.png"
+            alt="株式会社旭コーチング"
+            width={320}
+            height={73}
+            className="h-7 w-auto sm:h-8 md:h-9"
+            style={{ objectFit: 'contain' }}
+            priority
+          />
         </Link>
         <nav
           className="hidden md:flex items-center gap-8 text-sm tracking-wide"
